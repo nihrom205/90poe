@@ -1,0 +1,56 @@
+{
+	"info": {
+		"_postman_id": "9576e650-ebdf-4d9c-8346-d0e7d4be862e",
+		"name": "Ports",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "1477866"
+	},
+	"item": [
+		{
+			"name": "Update Ports",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"AEAJM\": {\r\n    \"name\": \"Ajman\",\r\n    \"city\": \"Ajman\",\r\n    \"country\": \"United Arab Emirates\",\r\n    \"alias\": [],\r\n    \"regions\": [],\r\n    \"coordinates\": [\r\n      55.5136433,\r\n      25.4052165\r\n    ],\r\n    \"province\": \"Ajman\",\r\n    \"timezone\": \"Asia/Dubai\",\r\n    \"unlocs\": [\r\n      \"AEAJM\"\r\n    ],\r\n    \"code\": \"52000\"\r\n  },\r\n  \"AEAUH\": {\r\n    \"name\": \"Abu Dhabi\",\r\n    \"coordinates\": [\r\n      54.37,\r\n      24.47\r\n    ],\r\n    \"city\": \"Abu Dhabi\",\r\n    \"province\": \"Abu Z¸aby [Abu Dhabi]\",\r\n    \"country\": \"United Arab Emirates\",\r\n    \"alias\": [],\r\n    \"regions\": [],\r\n    \"timezone\": \"Asia/Dubai\",\r\n    \"unlocs\": [\r\n      \"AEAUH\"\r\n    ],\r\n    \"code\": \"52001\"\r\n  },\r\n  \"AEDXB\": {\r\n    \"name\": \"Dubai\",\r\n    \"coordinates\": [\r\n      55.27,\r\n      25.25\r\n    ],\r\n    \"city\": \"Dubai\",\r\n    \"province\": \"Dubayy [Dubai]\",\r\n    \"country\": \"United Arab Emirates\",\r\n    \"alias\": [],\r\n    \"regions\": [],\r\n    \"timezone\": \"Asia/Dubai\",\r\n    \"unlocs\": [\r\n      \"AEDXB\"\r\n    ],\r\n    \"code\": \"52005\"\r\n  }\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/ports",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"ports"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Port By Key",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/port/AEAUH",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"port",
+						"AEAUH"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

@@ -5,9 +5,9 @@ import (
 )
 
 type Config struct {
-	HTTPAddr string
-	DSN      string
-	//MIGRATIONS_PATH string
+	HTTPAddr       string
+	DSN            string
+	MigrationsPath string
 }
 
 func Read() Config {
@@ -22,5 +22,9 @@ func Read() Config {
 		config.DSN = dsn
 	}
 
+	migrationsPath, exists := os.LookupEnv("MIGRATIONS_PATH")
+	if exists {
+		config.MigrationsPath = migrationsPath
+	}
 	return config
 }

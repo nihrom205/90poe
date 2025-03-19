@@ -3,8 +3,7 @@ package pkg
 import (
 	"errors"
 	"fmt"
-	"github.com/nihrom205/90poe/internal/app/config"
-	"gorm.io/driver/postgres"
+	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 	"log"
 	"time"
@@ -14,19 +13,17 @@ type Db struct {
 	*gorm.DB
 }
 
-func NewDb(config *config.Config) (*Db, error) {
-	var dsn = config.DSN
-	//var dsn = "file::memory:?cache=shared"
+func NewDb(dsn string) (*Db, error) {
 	if dsn == "" {
 		return nil, errors.New("нет DSN")
 	}
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	gormDb, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Ошибка при подключении к базе данных: %v", err)
 	}
 
-	sqlDb, err := db.DB()
+	sqlDb, err := gormDb.DB()
 	if err != nil {
 		return nil, fmt.Errorf("не удалось получить объект sql.DB: %v", err)
 	}
@@ -38,5 +35,5 @@ func NewDb(config *config.Config) (*Db, error) {
 	if err = sqlDb.Ping(); err != nil {
 		return nil, fmt.Errorf("db.Ping failed: %w", err)
 	}
-	return &Db{DB: db}, nil
+	return &Db{gormDb}, nil
 }

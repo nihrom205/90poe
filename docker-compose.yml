@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  app_port:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: app_port:latest
+    container_name: app_port
+    environment:
+      HTTP_ADDR: ":8080"
+      DSN: "file::memory:?cache=shared"
+      MIGRATIONS_PATH: "file://migrations"
+    ports:
+      - "8080:8080"

@@ -2,12 +2,19 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/sqlite3"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/gorilla/mux"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/nihrom205/90poe/internal/app/config"
+	"github.com/nihrom205/90poe/internal/app/repository"
+	"github.com/nihrom205/90poe/internal/app/service"
+	"github.com/nihrom205/90poe/internal/app/transport/httpserver"
 	"github.com/nihrom205/90poe/internal/pkg"
-	"github.com/nihrom205/90poe/internal/transport/httpserver"
 	"log"
 	"net/http"
 	"os"
@@ -26,29 +33,40 @@ func main() {
 func run() error {
 	cfg := config.Read()
 
-	_, err := pkg.NewDb(&cfg)
+	db, err := pkg.NewDb(cfg.DSN)
 	if err != nil {
-		return fmt.Errorf("pg.Db failed: %w", err)
+		return fmt.Errorf("не успешное создание pg.Db: %w", err)
+	}
+
+	// Migration
+	if db != nil {
+		log.Println("Запущена Sqlite миграция")
+		if err = runSqliteMigrations(cfg.DSN, cfg.MigrationsPath); err != nil {
+			return fmt.Errorf("не успешное runSqliteMigrations: %w", err)
+		}
 	}
 
 	// Create Repositories
+	portRepo := repository.NewPortRepository(db)
 
 	// Create Services
+	portService := service.NewPortService(portRepo)
 
 	// Create HttpServer
-	httpServer := httpserver.NewHttpServer()
+	httpServer := httpserver.NewHttpServer(portService)
 
 	// Create http router
 	router := mux.NewRouter()
 
-	router.HandleFunc("/test", httpServer.MyTestHandler).Methods(http.MethodGet)
+	router.HandleFunc("/ports", httpServer.Processing).Methods(http.MethodPost)
+	router.HandleFunc("/port/{key}", httpServer.GetPortByKey).Methods(http.MethodGet)
 
 	srv := &http.Server{
 		Addr:    cfg.HTTPAddr,
 		Handler: router,
 	}
 
-	// listen OS signal
+	// Listen OS signal
 	stopped := make(chan struct{})
 	go func() {
 		signCh := make(chan os.Signal, 1)
@@ -62,15 +80,50 @@ func run() error {
 		close(stopped)
 	}()
 
-	// start http server
-	log.Printf("Starting HTTP server on %s", cfg.HTTPAddr)
+	// Start http server
+	log.Printf("Запуск HTTP сервера на %s порту", cfg.HTTPAddr)
 	if err = srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-		log.Fatalf("HTTP server ListenAndServe Error: %v", err)
+		log.Fatalf("HTTP сервер ListenAndServe остановлен с ошибкой: %v", err)
 	}
 
 	<-stopped
 
-	log.Printf("The server completed the work!")
+	log.Printf("Сервер завершил свою работу!")
 
+	return nil
+}
+
+func runSqliteMigrations(dsn, path string) error {
+	if path == "" {
+		return errors.New("путь миграции не предоставлен")
+	}
+	if dsn == "" {
+		return errors.New("нет DSN")
+	}
+
+	sqlDB, err := sql.Open("sqlite", dsn)
+	if err != nil {
+		return errors.New("не удалось подключиться к базе данных")
+	}
+	defer sqlDB.Close()
+
+	// Инициализация драйвера для SQLite
+	driver, err := sqlite3.WithInstance(sqlDB, &sqlite3.Config{})
+	if err != nil {
+		return errors.New("не удалось создать драйвер SQLite")
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(
+		path,
+		"sqlite3",
+		driver)
+
+	if err != nil {
+		return fmt.Errorf("экземпляр мигрирции не создан: %s", err)
+	}
+
+	if err = m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return fmt.Errorf("миграция не выполнена: %s", err)
+	}
 	return nil
 }
