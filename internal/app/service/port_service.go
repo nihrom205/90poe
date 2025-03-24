@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/nihrom205/90poe/internal/app/repository"
-	"gorm.io/gorm"
 	"io"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/nihrom205/90poe/internal/app/repository"
+	"gorm.io/gorm"
 )
 
 type PortService struct {
@@ -48,7 +49,7 @@ func Parse(ctx context.Context, ch chan<- keyAndLocation, data io.ReadCloser) {
 	decoder := json.NewDecoder(data)
 
 	if _, err := decoder.Token(); err != nil {
-		log.Fatalf("PortService - Parse: Ошибка при чтении открывающего токена: %v", err)
+		log.Fatalf("PortService - Parse: Error reading open token: %v", err)
 	}
 
 	for decoder.More() {
@@ -58,13 +59,13 @@ func Parse(ctx context.Context, ch chan<- keyAndLocation, data io.ReadCloser) {
 		default:
 			key, err := decoder.Token()
 			if err != nil {
-				fmt.Println("PortService - Parse: Ошибка при чтении ключа:", err)
+				fmt.Printf("PortService - Parse: Error read for key: %v", err)
 				continue
 			}
 
 			var location Location
 			if err = decoder.Decode(&location); err != nil {
-				fmt.Println("PortService - Parse: Ошибка при декодировании объекта:", err)
+				fmt.Printf("PortService - Parse: Error decoding location: %v", err)
 				continue
 			}
 
@@ -76,7 +77,7 @@ func Parse(ctx context.Context, ch chan<- keyAndLocation, data io.ReadCloser) {
 	}
 
 	if _, err := decoder.Token(); err != nil {
-		fmt.Println("PortService - Parse: Ошибка при чтении токена:", err)
+		fmt.Printf("PortService - Parse: Error reading closing token: %v", err)
 		return
 	}
 }
@@ -88,12 +89,12 @@ func SavePort(ctx context.Context, repo IPortRepository, key <-chan keyAndLocati
 			return
 		case keyLoc, ok := <-key:
 			if !ok {
-				log.Println("PortService - SavePort: канал закрыт, завершение выполнения")
+				log.Println("PortService - SavePort: chanel closed, completion of execution")
 				return
 			}
 			port, isValid := mapperToDB(keyLoc)
 			if !isValid {
-				log.Println("PortService - SavePort: Ошибка валидации")
+				log.Println("PortService - SavePort: Error validation port")
 				continue
 			}
 
@@ -101,7 +102,7 @@ func SavePort(ctx context.Context, repo IPortRepository, key <-chan keyAndLocati
 			if portDb == nil && errors.Is(err, gorm.ErrRecordNotFound) {
 				_, err = repo.CreatePort(port)
 				if err != nil {
-					log.Printf("PortService - SavePort: не удалось сохранить: %v", err)
+					log.Printf("PortService - SavePort: Error creating port: %v", err)
 				}
 				continue
 			}
@@ -111,7 +112,7 @@ func SavePort(ctx context.Context, repo IPortRepository, key <-chan keyAndLocati
 			port.UpdatedAt = time.Now()
 			_, err = repo.UpdateLocation(port)
 			if err != nil {
-				log.Printf("PortService - SavePort: Ошибка при обновлении %v", err)
+				log.Printf("PortService - SavePort: Error updating location: %v", err)
 			}
 		}
 	}
@@ -120,7 +121,7 @@ func SavePort(ctx context.Context, repo IPortRepository, key <-chan keyAndLocati
 func (s PortService) GetPortByKey(key string) (*Port, error) {
 	portDb, err := s.repo.GetPortByKey(key)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("PortService - GetPortByKey: %v", err)
 	}
 	port := mapperPort(portDb)
 	return port, nil

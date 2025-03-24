@@ -1,9 +1,10 @@
 package httpserver
 
 import (
+	"net/http"
+
 	"github.com/gorilla/mux"
 	"github.com/nihrom205/90poe/internal/app/common"
-	"net/http"
 )
 
 func (h HttpServer) Processing(w http.ResponseWriter, r *http.Request) {

@@ -2,8 +2,9 @@ package httpserver
 
 import (
 	"context"
-	"github.com/nihrom205/90poe/internal/app/service"
 	"io"
+
+	"github.com/nihrom205/90poe/internal/app/service"
 )
 
 type IPortService interface {

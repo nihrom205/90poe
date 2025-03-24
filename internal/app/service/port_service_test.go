@@ -4,16 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"log"
+	"strings"
+	"testing"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/glebarez/sqlite"
 	"github.com/nihrom205/90poe/internal/app/repository"
 	"github.com/nihrom205/90poe/internal/pkg"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
-	"io"
-	"log"
-	"strings"
-	"testing"
 )
 
 func initTest() (*gorm.DB, sqlmock.Sqlmock, error) {

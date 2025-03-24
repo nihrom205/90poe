@@ -3,10 +3,11 @@ package pkg
 import (
 	"errors"
 	"fmt"
-	"github.com/glebarez/sqlite"
-	"gorm.io/gorm"
 	"log"
 	"time"
+
+	"github.com/glebarez/sqlite"
+	"gorm.io/gorm"
 )
 
 type Db struct {
@@ -20,12 +21,12 @@ func NewDb(dsn string) (*Db, error) {
 
 	gormDb, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("Ошибка при подключении к базе данных: %v", err)
+		log.Fatalf("Error connecting to a database: %v", err)
 	}
 
 	sqlDb, err := gormDb.DB()
 	if err != nil {
-		return nil, fmt.Errorf("не удалось получить объект sql.DB: %v", err)
+		return nil, fmt.Errorf("failing to get sql.DB: %v", err)
 	}
 
 	sqlDb.SetMaxOpenConns(10)

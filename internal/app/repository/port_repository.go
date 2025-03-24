@@ -37,15 +37,6 @@ func (repo PortRepository) GetPortByKey(key string) (*Port, error) {
 	return &port, nil
 }
 
-//func (repo PortRepository) GetPortById(id int) (Port, error) {
-//	var port Port
-//	result := repo.Db.Find(&port, "id = ?", id)
-//	if result.Error != nil {
-//		fmt.Println(result.Error)
-//	}
-//	return port, nil
-//}
-
 func (repo PortRepository) GetAllPorts() ([]Port, error) {
 	var ports []Port
 	if err := repo.Db.Find(&ports).Error; err != nil {

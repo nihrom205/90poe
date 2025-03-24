@@ -4,15 +4,16 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"os"
+	"testing"
+
 	"github.com/glebarez/sqlite"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
 	"github.com/nihrom205/90poe/internal/app/repository"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
-	"net/http"
-	"os"
-	"testing"
 )
 
 func initDb() *gorm.DB {

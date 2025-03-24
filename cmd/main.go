@@ -5,6 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -15,12 +22,6 @@ import (
 	"github.com/nihrom205/90poe/internal/app/service"
 	"github.com/nihrom205/90poe/internal/app/transport/httpserver"
 	"github.com/nihrom205/90poe/internal/pkg"
-	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 func main() {
@@ -35,14 +36,14 @@ func run() error {
 
 	db, err := pkg.NewDb(cfg.DSN)
 	if err != nil {
-		return fmt.Errorf("не успешное создание pg.Db: %w", err)
+		return fmt.Errorf("pg.Db failed: %w", err)
 	}
 
 	// Migration
 	if db != nil {
-		log.Println("Запущена Sqlite миграция")
+		log.Println("Start Sqlite migrations")
 		if err = runSqliteMigrations(cfg.DSN, cfg.MigrationsPath); err != nil {
-			return fmt.Errorf("не успешное runSqliteMigrations: %w", err)
+			return fmt.Errorf("runSqliteMigrations failed: %w", err)
 		}
 	}
 
@@ -80,37 +81,37 @@ func run() error {
 		close(stopped)
 	}()
 
-	// Start http server
-	log.Printf("Запуск HTTP сервера на %s порту", cfg.HTTPAddr)
+	// Start http server  запущен
+	log.Printf("Starting Http server on %s port", cfg.HTTPAddr)
 	if err = srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-		log.Fatalf("HTTP сервер ListenAndServe остановлен с ошибкой: %v", err)
+		log.Fatalf("HTTP server ListenAndServe stoped with error: %v", err)
 	}
 
 	<-stopped
 
-	log.Printf("Сервер завершил свою работу!")
+	log.Printf("Http server completed his work!")
 
 	return nil
 }
 
 func runSqliteMigrations(dsn, path string) error {
 	if path == "" {
-		return errors.New("путь миграции не предоставлен")
+		return errors.New("no migrations path provided")
 	}
 	if dsn == "" {
-		return errors.New("нет DSN")
+		return errors.New("no DSN provided")
 	}
 
 	sqlDB, err := sql.Open("sqlite", dsn)
 	if err != nil {
-		return errors.New("не удалось подключиться к базе данных")
+		return fmt.Errorf("failed connection to a database: %v", err)
 	}
 	defer sqlDB.Close()
 
 	// Инициализация драйвера для SQLite
 	driver, err := sqlite3.WithInstance(sqlDB, &sqlite3.Config{})
 	if err != nil {
-		return errors.New("не удалось создать драйвер SQLite")
+		return errors.New("failed initialization of SQLite driver")
 	}
 
 	m, err := migrate.NewWithDatabaseInstance(
@@ -119,11 +120,11 @@ func runSqliteMigrations(dsn, path string) error {
 		driver)
 
 	if err != nil {
-		return fmt.Errorf("экземпляр мигрирции не создан: %s", err)
+		return fmt.Errorf("instance migration not created: %s", err)
 	}
 
 	if err = m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		return fmt.Errorf("миграция не выполнена: %s", err)
+		return fmt.Errorf("migration not executed: %s", err)
 	}
 	return nil
 }
