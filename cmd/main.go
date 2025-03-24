@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/rs/zerolog"
 	"log"
 	"net/http"
 	"os"
@@ -32,6 +33,7 @@ func main() {
 }
 
 func run() error {
+	logger := getLogger()
 	cfg := config.Read()
 
 	db, err := pkg.NewDb(cfg.DSN)
@@ -41,7 +43,7 @@ func run() error {
 
 	// Migration
 	if db != nil {
-		log.Println("Start Sqlite migrations")
+		logger.Info().Msgf("Start Sqlite migrations")
 		if err = runSqliteMigrations(cfg.DSN, cfg.MigrationsPath); err != nil {
 			return fmt.Errorf("runSqliteMigrations failed: %w", err)
 		}
@@ -51,7 +53,7 @@ func run() error {
 	portRepo := repository.NewPortRepository(db)
 
 	// Create Services
-	portService := service.NewPortService(portRepo)
+	portService := service.NewPortService(portRepo, &logger)
 
 	// Create HttpServer
 	httpServer := httpserver.NewHttpServer(portService)
@@ -76,20 +78,20 @@ func run() error {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err = srv.Shutdown(ctx); err != nil {
-			log.Printf("HTTP Server Shutdown Error: %v", err)
+			logger.Error().Msgf("HTTP Server Shutdown Error: %v", err)
 		}
 		close(stopped)
 	}()
 
 	// Start http server  запущен
-	log.Printf("Starting Http server on %s port", cfg.HTTPAddr)
+	logger.Info().Msgf("Starting Http server on %s port", cfg.HTTPAddr)
 	if err = srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-		log.Fatalf("HTTP server ListenAndServe stoped with error: %v", err)
+		return fmt.Errorf("HTTP Server Shutdown Error: %w", err)
 	}
 
 	<-stopped
 
-	log.Printf("Http server completed his work!")
+	logger.Info().Msgf("Http server completed his work!")
 
 	return nil
 }
@@ -127,4 +129,14 @@ func runSqliteMigrations(dsn, path string) error {
 		return fmt.Errorf("migration not executed: %s", err)
 	}
 	return nil
+}
+
+func getLogger() zerolog.Logger {
+	return zerolog.New(zerolog.ConsoleWriter{
+		Out:        os.Stderr,
+		TimeFormat: "2006-01-02T15:04:05Z07:00"}).
+		Level(zerolog.InfoLevel).
+		With().
+		Timestamp().
+		Logger()
 }
