@@ -57,9 +57,15 @@ func Parse(ctx context.Context, ch chan<- keyAndLocation, data io.ReadCloser) {
 		case <-ctx.Done():
 			return
 		default:
-			key, err := decoder.Token()
+			keyToken, err := decoder.Token()
 			if err != nil {
-				fmt.Printf("PortService - Parse: Error read for key: %v", err)
+				fmt.Printf("PortService - Parse: Error read for keyToken: %v", err)
+				continue
+			}
+
+			strKey, ok := keyToken.(string)
+			if !ok {
+				log.Printf("PortService - Parse: Error converting keyToken to string: %v", err)
 				continue
 			}
 
@@ -70,7 +76,7 @@ func Parse(ctx context.Context, ch chan<- keyAndLocation, data io.ReadCloser) {
 			}
 
 			ch <- keyAndLocation{
-				Key: key.(string),
+				Key: strKey,
 				Loc: location,
 			}
 		}
