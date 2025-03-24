@@ -59,7 +59,7 @@ func run() error {
 	// Create http router
 	router := mux.NewRouter()
 
-	router.HandleFunc("/ports", httpServer.Processing).Methods(http.MethodPost)
+	router.HandleFunc("/ports", httpServer.LoadPorts).Methods(http.MethodPost)
 	router.HandleFunc("/port/{key}", httpServer.GetPortByKey).Methods(http.MethodGet)
 
 	srv := &http.Server{

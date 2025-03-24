@@ -7,7 +7,7 @@ import (
 	"github.com/nihrom205/90poe/internal/app/common"
 )
 
-func (h HttpServer) Processing(w http.ResponseWriter, r *http.Request) {
+func (h HttpServer) LoadPorts(w http.ResponseWriter, r *http.Request) {
 	h.portService.ProcessingJson(r.Context(), r.Body)
 	common.RespondOK("", w)
 }
