@@ -22,6 +22,9 @@ FROM alpine:latest
 # Также установите Bash, чтобы запустить wate-for-it.sh
 RUN apk update && apk upgrade && apk add bash
 
+#Reduce image size
+RUN rm -rf /var/cache/apk/* /tmp/*
+
 # Избегайте запуска кода в качестве пользователя root
 RUN adduser -D appuser
 USER appuser
