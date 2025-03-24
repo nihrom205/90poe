@@ -26,7 +26,7 @@ func NewDb(dsn string) (*Db, error) {
 
 	sqlDb, err := gormDb.DB()
 	if err != nil {
-		return nil, fmt.Errorf("failing to get sql.DB: %v", err)
+		return nil, fmt.Errorf("failing to get sql.DB: %w", err)
 	}
 
 	sqlDb.SetMaxOpenConns(10)

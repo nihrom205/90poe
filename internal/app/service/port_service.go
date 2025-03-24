@@ -127,7 +127,7 @@ func SavePort(ctx context.Context, repo IPortRepository, key <-chan keyAndLocati
 func (s PortService) GetPortByKey(key string) (*Port, error) {
 	portDb, err := s.repo.GetPortByKey(key)
 	if err != nil {
-		return nil, fmt.Errorf("PortService - GetPortByKey: %v", err)
+		return nil, fmt.Errorf("PortService - GetPortByKey: %w", err)
 	}
 	port := mapperPort(portDb)
 	return port, nil

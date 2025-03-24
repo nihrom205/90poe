@@ -104,7 +104,7 @@ func runSqliteMigrations(dsn, path string) error {
 
 	sqlDB, err := sql.Open("sqlite", dsn)
 	if err != nil {
-		return fmt.Errorf("failed connection to a database: %v", err)
+		return fmt.Errorf("failed connection to a database: %w", err)
 	}
 	defer sqlDB.Close()
 
