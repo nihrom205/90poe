@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/rs/zerolog"
 	"io"
-	"log"
 	"sync"
 	"time"
 
@@ -15,12 +15,14 @@ import (
 )
 
 type PortService struct {
-	repo IPortRepository
+	repo   IPortRepository
+	logger *zerolog.Logger
 }
 
-func NewPortService(repo IPortRepository) PortService {
+func NewPortService(repo IPortRepository, logger *zerolog.Logger) PortService {
 	return PortService{
-		repo: repo,
+		repo:   repo,
+		logger: logger,
 	}
 }
 
@@ -32,24 +34,25 @@ func (s PortService) ProcessingJson(ctx context.Context, data io.ReadCloser) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		SavePort(ctx, s.repo, chLocation)
+		SavePort(ctx, s.logger, s.repo, chLocation)
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		Parse(ctx, chLocation, data)
+		Parse(ctx, s.logger, chLocation, data)
 	}()
 
 	wg.Wait()
 }
 
-func Parse(ctx context.Context, ch chan<- keyAndLocation, data io.ReadCloser) {
+func Parse(ctx context.Context, logger *zerolog.Logger, ch chan<- keyAndLocation, data io.ReadCloser) {
 	defer close(ch)
 	decoder := json.NewDecoder(data)
 
 	if _, err := decoder.Token(); err != nil {
-		log.Fatalf("PortService - Parse: Error reading open token: %v", err)
+		logger.Error().Msgf("PortService - Parse: Error reading open token: %v", err)
+		return
 	}
 
 	for decoder.More() {
@@ -59,19 +62,19 @@ func Parse(ctx context.Context, ch chan<- keyAndLocation, data io.ReadCloser) {
 		default:
 			keyToken, err := decoder.Token()
 			if err != nil {
-				fmt.Printf("PortService - Parse: Error read for keyToken: %v", err)
+				logger.Error().Msgf("PortService - Parse: Error read for keyToken: %v", err)
 				continue
 			}
 
 			strKey, ok := keyToken.(string)
 			if !ok {
-				log.Printf("PortService - Parse: Error converting keyToken to string: %v", err)
+				logger.Error().Msgf("PortService - Parse: Error converting keyToken to string: %v", err)
 				continue
 			}
 
 			var location Location
 			if err = decoder.Decode(&location); err != nil {
-				fmt.Printf("PortService - Parse: Error decoding location: %v", err)
+				logger.Error().Msgf("PortService - Parse: Error converting keyToken to string: %v", err)
 				continue
 			}
 
@@ -83,24 +86,24 @@ func Parse(ctx context.Context, ch chan<- keyAndLocation, data io.ReadCloser) {
 	}
 
 	if _, err := decoder.Token(); err != nil {
-		fmt.Printf("PortService - Parse: Error reading closing token: %v", err)
+		logger.Error().Msgf("PortService - Parse: Error reading closing token: %v", err)
 		return
 	}
 }
 
-func SavePort(ctx context.Context, repo IPortRepository, key <-chan keyAndLocation) {
+func SavePort(ctx context.Context, logger *zerolog.Logger, repo IPortRepository, key <-chan keyAndLocation) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case keyLoc, ok := <-key:
 			if !ok {
-				log.Println("PortService - SavePort: chanel closed, completion of execution")
+				logger.Info().Msgf("PortService - SavePort: Completion of execution")
 				return
 			}
 			port, isValid := mapperToDB(keyLoc)
 			if !isValid {
-				log.Println("PortService - SavePort: Error validation port")
+				logger.Error().Msgf("PortService - SavePort: Error validation port")
 				continue
 			}
 
@@ -108,7 +111,7 @@ func SavePort(ctx context.Context, repo IPortRepository, key <-chan keyAndLocati
 			if portDb == nil && errors.Is(err, gorm.ErrRecordNotFound) {
 				_, err = repo.CreatePort(port)
 				if err != nil {
-					log.Printf("PortService - SavePort: Error creating port: %v", err)
+					logger.Error().Msgf("PortService - SavePort: Error creating port: %v", err)
 				}
 				continue
 			}
@@ -118,7 +121,7 @@ func SavePort(ctx context.Context, repo IPortRepository, key <-chan keyAndLocati
 			port.UpdatedAt = time.Now()
 			_, err = repo.UpdateLocation(port)
 			if err != nil {
-				log.Printf("PortService - SavePort: Error updating location: %v", err)
+				logger.Error().Msgf("PortService - SavePort: Error updating location: %v", err)
 			}
 		}
 	}
