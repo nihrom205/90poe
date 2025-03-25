@@ -14,7 +14,7 @@ func (h HttpServer) LoadPorts(w http.ResponseWriter, r *http.Request) {
 
 func (h HttpServer) GetPortByKey(w http.ResponseWriter, r *http.Request) {
 	key := mux.Vars(r)["key"]
-	port, err := h.portService.GetPortByKey(key)
+	port, err := h.portService.GetPortByKey(r.Context(), key)
 	if err != nil {
 		common.NotFound(w)
 	}

@@ -1,10 +1,13 @@
 package service
 
-import "github.com/nihrom205/90poe/internal/app/repository"
+import (
+	"context"
+	"github.com/nihrom205/90poe/internal/app/repository"
+)
 
 type IPortRepository interface {
-	CreatePort(port *repository.Port) (*repository.Port, error)
-	UpdateLocation(port *repository.Port) (*repository.Port, error)
-	GetPortByKey(key string) (*repository.Port, error)
-	GetAllPorts() ([]repository.Port, error)
+	CreatePort(ctx context.Context, port *repository.Port) (*repository.Port, error)
+	UpdateLocation(ctx context.Context, port *repository.Port) (*repository.Port, error)
+	GetPortByKey(ctx context.Context, key string) (*repository.Port, error)
+	GetAllPorts(ctx context.Context) ([]repository.Port, error)
 }
