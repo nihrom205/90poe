@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/nihrom205/90poe/internal/app/domain"
 	"github.com/rs/zerolog"
+	"golang.org/x/sync/errgroup"
 	"io"
-	"sync"
 	"time"
 
 	"github.com/nihrom205/90poe/internal/app/repository"
@@ -28,37 +29,34 @@ func NewPortService(repo IPortRepository, logger *zerolog.Logger) PortService {
 
 func (s PortService) ProcessingJson(ctx context.Context, data io.ReadCloser) {
 	chLocation := make(chan keyAndLocation, 1)
-	var wg sync.WaitGroup
-	//g := new(errgroup.Group)
+	g := new(errgroup.Group)
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		SavePort(ctx, s.logger, s.repo, chLocation)
-	}()
+	g.Go(func() error {
+		return SavePort(ctx, s.logger, s.repo, chLocation)
+	})
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		Parse(ctx, s.logger, chLocation, data)
-	}()
+	g.Go(func() error {
+		return Parse(ctx, s.logger, chLocation, data)
+	})
 
-	wg.Wait()
+	if err := g.Wait(); err != nil {
+		s.logger.Error().Msgf("PortService - ProcessingJson: Error processing json: %v", err)
+	}
 }
 
-func Parse(ctx context.Context, logger *zerolog.Logger, ch chan<- keyAndLocation, data io.ReadCloser) {
+func Parse(ctx context.Context, logger *zerolog.Logger, ch chan<- keyAndLocation, data io.ReadCloser) error {
 	defer close(ch)
 	decoder := json.NewDecoder(data)
 
 	if _, err := decoder.Token(); err != nil {
 		logger.Error().Msgf("PortService - Parse: Error reading open token: %v", err)
-		return
+		return fmt.Errorf("PortService - Parse: Error reading open token: %w", err)
 	}
 
 	for decoder.More() {
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 		default:
 			keyToken, err := decoder.Token()
 			if err != nil {
@@ -87,19 +85,20 @@ func Parse(ctx context.Context, logger *zerolog.Logger, ch chan<- keyAndLocation
 
 	if _, err := decoder.Token(); err != nil {
 		logger.Error().Msgf("PortService - Parse: Error reading closing token: %v", err)
-		return
+		return fmt.Errorf("PortService - Parse: Error reading closing token: %w", err)
 	}
+	return nil
 }
 
-func SavePort(ctx context.Context, logger *zerolog.Logger, repo IPortRepository, key <-chan keyAndLocation) {
+func SavePort(ctx context.Context, logger *zerolog.Logger, repo IPortRepository, key <-chan keyAndLocation) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 		case keyLoc, ok := <-key:
 			if !ok {
 				logger.Info().Msgf("PortService - SavePort: Completion of execution")
-				return
+				return nil
 			}
 			port, isValid := mapperToDB(keyLoc)
 			if !isValid {
@@ -107,9 +106,9 @@ func SavePort(ctx context.Context, logger *zerolog.Logger, repo IPortRepository,
 				continue
 			}
 
-			portDb, err := repo.GetPortByKey(port.Key)
+			portDb, err := repo.GetPortByKey(ctx, port.Key)
 			if portDb == nil && errors.Is(err, gorm.ErrRecordNotFound) {
-				_, err = repo.CreatePort(port)
+				_, err = repo.CreatePort(ctx, port)
 				if err != nil {
 					logger.Error().Msgf("PortService - SavePort: Error creating port: %v", err)
 				}
@@ -119,7 +118,7 @@ func SavePort(ctx context.Context, logger *zerolog.Logger, repo IPortRepository,
 			port.ID = portDb.ID
 			port.CreatedAt = portDb.CreatedAt
 			port.UpdatedAt = time.Now()
-			_, err = repo.UpdateLocation(port)
+			_, err = repo.UpdateLocation(ctx, port)
 			if err != nil {
 				logger.Error().Msgf("PortService - SavePort: Error updating location: %v", err)
 			}
@@ -127,8 +126,8 @@ func SavePort(ctx context.Context, logger *zerolog.Logger, repo IPortRepository,
 	}
 }
 
-func (s PortService) GetPortByKey(key string) (*Port, error) {
-	portDb, err := s.repo.GetPortByKey(key)
+func (s PortService) GetPortByKey(ctx context.Context, key string) (*domain.NewPortData, error) {
+	portDb, err := s.repo.GetPortByKey(ctx, key)
 	if err != nil {
 		return nil, fmt.Errorf("PortService - GetPortByKey: %w", err)
 	}
@@ -157,8 +156,8 @@ func mapperToDB(keyLoc keyAndLocation) (*repository.Port, bool) {
 	}, true
 }
 
-func mapperPort(port *repository.Port) *Port {
-	return &Port{
+func mapperPort(port *repository.Port) *domain.NewPortData {
+	return &domain.NewPortData{
 		Key:         port.Key,
 		Name:        port.Name,
 		City:        port.City,

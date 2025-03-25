@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/rs/zerolog"
 	"io"
 	"log"
+	"os"
 	"strings"
 	"testing"
 
@@ -37,6 +39,7 @@ func initTest() (*gorm.DB, sqlmock.Sqlmock, error) {
 }
 
 func TestPortServiceGetPortByKeySuccess(t *testing.T) {
+	logger := getLogger()
 	gormDb, mock, err := initTest()
 	if err != nil {
 		t.Fatal(err)
@@ -54,8 +57,9 @@ func TestPortServiceGetPortByKeySuccess(t *testing.T) {
 	portRepo := repository.NewPortRepository(&pkg.Db{
 		DB: gormDb,
 	})
-	service := NewPortService(portRepo)
-	port, err := service.GetPortByKey("AEAUH")
+	ctx := context.Background()
+	service := NewPortService(portRepo, &logger)
+	port, err := service.GetPortByKey(ctx, "AEAUH")
 
 	assert.NoError(t, err)
 	assert.NotNil(t, port)
@@ -69,6 +73,7 @@ func TestPortServiceGetPortByKeySuccess(t *testing.T) {
 }
 
 func TestPortServiceGetPortByKeyNotFound(t *testing.T) {
+	logger := getLogger()
 	gormDb, mock, err := initTest()
 	if err != nil {
 		t.Fatal(err)
@@ -85,8 +90,9 @@ func TestPortServiceGetPortByKeyNotFound(t *testing.T) {
 	portRepo := repository.NewPortRepository(&pkg.Db{
 		DB: gormDb,
 	})
-	service := NewPortService(portRepo)
-	port, err := service.GetPortByKey("FakeKey")
+	ctx := context.Background()
+	service := NewPortService(portRepo, &logger)
+	port, err := service.GetPortByKey(ctx, "FakeKey")
 
 	assert.Error(t, err)
 	assert.Nil(t, port)
@@ -98,6 +104,7 @@ func TestPortServiceGetPortByKeyNotFound(t *testing.T) {
 }
 
 func TestPortServiceParsing(t *testing.T) {
+	logger := getLogger()
 	// Создаём mock-репозиторий
 	mockRepo := new(MockPortRepository)
 
@@ -112,7 +119,7 @@ func TestPortServiceParsing(t *testing.T) {
 		Return(port, nil)
 
 	// Создаём сервис с mock-репозиторием
-	service := NewPortService(mockRepo)
+	service := NewPortService(mockRepo, &logger)
 
 	// Вызываем метод SavePort
 	service.ProcessingJson(context.Background(), io.NopCloser(strings.NewReader(getJsonData())))
@@ -179,4 +186,14 @@ func getPort() *repository.Port {
 	})
 
 	return port
+}
+
+func getLogger() zerolog.Logger {
+	return zerolog.New(zerolog.ConsoleWriter{
+		Out:        os.Stderr,
+		TimeFormat: "2006-01-02T15:04:05Z07:00"}).
+		Level(zerolog.InfoLevel).
+		With().
+		Timestamp().
+		Logger()
 }

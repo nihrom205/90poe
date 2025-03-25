@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"os"
 	"testing"
@@ -16,39 +18,33 @@ import (
 	"gorm.io/gorm"
 )
 
-func initDb() *gorm.DB {
+func initDb(t *testing.T) *gorm.DB {
 	dsn := "file::memory:?cache=shared"
 	path := "file://.././internal/app/migrations"
 
 	sqlDB, err := sql.Open("sqlite", dsn)
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err, "Failed to open SQLite DB")
 	defer sqlDB.Close()
 
 	// Инициализация драйвера для SQLite
 	driver, err := sqlite3.WithInstance(sqlDB, &sqlite3.Config{})
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err, "Failed to init GORM")
 
 	m, err := migrate.NewWithDatabaseInstance(
 		path,
 		"sqlite3",
 		driver)
 
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err, "Failed to migration not created")
 
-	if err = m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		panic(err)
+	err = m.Up()
+	if err != nil && errors.Is(err, migrate.ErrNoChange) {
+		fmt.Println("Migration not executed")
 	}
 
 	gormDb, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err, "Failed to open GORM DB")
+
 	return gormDb
 }
 
@@ -75,7 +71,7 @@ func TestGetPortByKeySuccess(t *testing.T) {
 	_ = os.Setenv("HTTP_ADDR", ":8080")
 	_ = os.Setenv("MIGRATIONS_PATH", "file://.././internal/app/migrations")
 
-	db := initDb()
+	db := initDb(t)
 	initData(db)
 
 	go main()
@@ -104,7 +100,7 @@ func TestGetPortByKeyNotFound(t *testing.T) {
 	_ = os.Setenv("HTTP_ADDR", ":8080")
 	_ = os.Setenv("MIGRATIONS_PATH", "file://.././internal/app/migrations")
 
-	db := initDb()
+	db := initDb(t)
 	initData(db)
 
 	go main()

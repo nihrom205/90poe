@@ -33,7 +33,7 @@ func main() {
 }
 
 func run() error {
-	logger := getLogger()
+	logger := GetLogger()
 	cfg := config.Read()
 
 	db, err := pkg.NewDb(cfg.DSN)
@@ -131,7 +131,7 @@ func runSqliteMigrations(dsn, path string) error {
 	return nil
 }
 
-func getLogger() zerolog.Logger {
+func GetLogger() zerolog.Logger {
 	return zerolog.New(zerolog.ConsoleWriter{
 		Out:        os.Stderr,
 		TimeFormat: "2006-01-02T15:04:05Z07:00"}).

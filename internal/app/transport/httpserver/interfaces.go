@@ -2,12 +2,11 @@ package httpserver
 
 import (
 	"context"
+	"github.com/nihrom205/90poe/internal/app/domain"
 	"io"
-
-	"github.com/nihrom205/90poe/internal/app/service"
 )
 
 type IPortService interface {
 	ProcessingJson(ctx context.Context, data io.ReadCloser)
-	GetPortByKey(key string) (*service.Port, error)
+	GetPortByKey(ctx context.Context, key string) (*domain.NewPortData, error)
 }

@@ -8,7 +8,9 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/gorilla/mux v1.8.1
 	github.com/mattn/go-sqlite3 v1.14.24
+	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.10.0
+	golang.org/x/sync v0.12.0
 	gorm.io/gorm v1.25.12
 )
 
@@ -27,7 +29,6 @@ require (
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	github.com/rs/zerolog v1.34.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
