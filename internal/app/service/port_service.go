@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/nihrom205/90poe/internal/app/domain"
 	"github.com/rs/zerolog"
@@ -12,7 +11,6 @@ import (
 	"time"
 
 	"github.com/nihrom205/90poe/internal/app/repository"
-	"gorm.io/gorm"
 )
 
 type PortService struct {
@@ -107,7 +105,7 @@ func SavePort(ctx context.Context, logger *zerolog.Logger, repo IPortRepository,
 			}
 
 			portDb, err := repo.GetPortByKey(ctx, port.Key)
-			if portDb == nil && errors.Is(err, gorm.ErrRecordNotFound) {
+			if portDb == nil && err != nil {
 				_, err = repo.CreatePort(ctx, port)
 				if err != nil {
 					logger.Error().Msgf("PortService - SavePort: Error creating port: %v", err)

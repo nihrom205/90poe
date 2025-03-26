@@ -2,7 +2,11 @@ package repository
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"github.com/nihrom205/90poe/internal/app/domain"
 	"github.com/nihrom205/90poe/internal/pkg"
+	"gorm.io/gorm"
 )
 
 type PortRepository struct {
@@ -16,7 +20,7 @@ func NewPortRepository(db *pkg.Db) *PortRepository {
 func (repo PortRepository) CreatePort(ctx context.Context, port *Port) (*Port, error) {
 	result := repo.Db.Create(port)
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, fmt.Errorf("failed to create port: %w", result.Error)
 	}
 	return port, nil
 }
@@ -24,7 +28,7 @@ func (repo PortRepository) CreatePort(ctx context.Context, port *Port) (*Port, e
 func (repo PortRepository) UpdateLocation(ctx context.Context, port *Port) (*Port, error) {
 	result := repo.Db.Save(port)
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, fmt.Errorf("failed to update location: %w", result.Error)
 	}
 	return port, nil
 }
@@ -33,15 +37,23 @@ func (repo PortRepository) GetPortByKey(ctx context.Context, key string) (*Port,
 	var port Port
 	result := repo.Db.First(&port, "key = ?", key)
 	if result.Error != nil {
-		return nil, result.Error
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get port by key: %w", result.Error)
 	}
 	return &port, nil
 }
 
 func (repo PortRepository) GetAllPorts(ctx context.Context) ([]Port, error) {
 	var ports []Port
-	if err := repo.Db.Find(&ports).Error; err != nil {
-		return nil, err
+	err := repo.Db.Find(&ports).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrNotFound
+
+		}
+		return ports, fmt.Errorf("failed to get all ports: %w", err)
 	}
 	return ports, nil
 }
