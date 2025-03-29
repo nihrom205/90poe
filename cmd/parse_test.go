@@ -5,10 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"net/http"
-	"os"
+	"net/http/httptest"
 	"testing"
+
+	"github.com/gorilla/mux"
+	"github.com/nihrom205/90poe/internal/app/service"
+	"github.com/nihrom205/90poe/internal/app/transport/httpserver"
+	"github.com/nihrom205/90poe/internal/pkg"
+	"github.com/stretchr/testify/require"
 
 	"github.com/glebarez/sqlite"
 	"github.com/golang-migrate/migrate/v4"
@@ -65,19 +70,26 @@ func initData(db *gorm.DB) {
 	})
 }
 
-func TestGetPortByKeySuccess(t *testing.T) {
-	// Устанавливаем переменные окружения
-	_ = os.Setenv("DSN", "file::memory:?cache=shared")
-	_ = os.Setenv("HTTP_ADDR", ":8080")
-	_ = os.Setenv("MIGRATIONS_PATH", "file://.././internal/app/migrations")
+func initHttpServer(db *gorm.DB) *httpserver.HttpServer {
+	logger := getLogger()
+	portRepo := repository.NewPortRepository(&pkg.Db{DB: db})
+	portService := service.NewPortService(portRepo, &logger)
+	return httpserver.NewHttpServer(portService)
+}
 
+func TestGetPortByKeySuccess(t *testing.T) {
 	db := initDb(t)
 	initData(db)
+	server := initHttpServer(db)
+	router := mux.NewRouter()
 
-	go main()
+	router.HandleFunc("/port/{key}", server.GetPortByKey).Methods(http.MethodGet)
+	ts := httptest.NewServer(router)
+	defer ts.Close()
 
 	// Отправляем GET-запрос
-	resp, err := http.Get("http://localhost:8080/port/AEAUH")
+	fmt.Println(ts.URL)
+	resp, err := http.Get(ts.URL + "/port/AEAUH")
 
 	assert.NoError(t, err)
 	defer resp.Body.Close()
@@ -95,18 +107,17 @@ func TestGetPortByKeySuccess(t *testing.T) {
 }
 
 func TestGetPortByKeyNotFound(t *testing.T) {
-	// Устанавливаем переменные окружения
-	_ = os.Setenv("DSN", "file::memory:?cache=shared")
-	_ = os.Setenv("HTTP_ADDR", ":8080")
-	_ = os.Setenv("MIGRATIONS_PATH", "file://.././internal/app/migrations")
-
 	db := initDb(t)
 	initData(db)
+	server := initHttpServer(db)
+	router := mux.NewRouter()
 
-	go main()
+	router.HandleFunc("/port/{key}", server.GetPortByKey).Methods(http.MethodGet)
+	ts := httptest.NewServer(router)
+	defer ts.Close()
 
 	// Отправляем GET-запрос
-	resp, err := http.Get("http://localhost:8080/port/fail")
+	resp, err := http.Get(ts.URL + "/port/fail")
 
 	assert.NoError(t, err)
 	defer resp.Body.Close()

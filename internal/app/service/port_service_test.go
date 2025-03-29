@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/rs/zerolog"
 	"io"
 	"log"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/rs/zerolog"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/glebarez/sqlite"

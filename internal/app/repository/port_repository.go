@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/nihrom205/90poe/internal/app/domain"
 	"github.com/nihrom205/90poe/internal/pkg"
 	"gorm.io/gorm"
@@ -51,7 +52,6 @@ func (repo PortRepository) GetAllPorts(ctx context.Context) ([]Port, error) {
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domain.ErrNotFound
-
 		}
 		return ports, fmt.Errorf("failed to get all ports: %w", err)
 	}

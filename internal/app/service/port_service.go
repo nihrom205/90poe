@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"time"
+
 	"github.com/nihrom205/90poe/internal/app/domain"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
-	"io"
-	"time"
 
 	"github.com/nihrom205/90poe/internal/app/repository"
 )
@@ -27,7 +28,7 @@ func NewPortService(repo IPortRepository, logger *zerolog.Logger) PortService {
 
 func (s PortService) ProcessingJson(ctx context.Context, data io.ReadCloser) {
 	chLocation := make(chan keyAndLocation, 1)
-	g := new(errgroup.Group)
+	g := errgroup.Group{}
 
 	g.Go(func() error {
 		return SavePort(ctx, s.logger, s.repo, chLocation)
