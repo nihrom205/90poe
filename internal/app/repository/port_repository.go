@@ -4,17 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/nihrom205/90poe/internal/pkg/pg"
 
 	"github.com/nihrom205/90poe/internal/app/domain"
-	"github.com/nihrom205/90poe/internal/pkg"
 	"gorm.io/gorm"
 )
 
 type PortRepository struct {
-	Db *pkg.Db
+	Db *pg.Db
 }
 
-func NewPortRepository(db *pkg.Db) *PortRepository {
+func NewPortRepository(db *pg.Db) *PortRepository {
 	return &PortRepository{Db: db}
 }
 
@@ -26,15 +26,17 @@ func (repo PortRepository) CreatePort(ctx context.Context, port *Port) (*Port, e
 	return port, nil
 }
 
-func (repo PortRepository) UpdateLocation(ctx context.Context, port *Port) (*Port, error) {
+func (repo PortRepository) UpdateLocation(ctx context.Context, port *Port) error {
+	fmt.Println("UpdateLocation start= ", port)
 	result := repo.Db.Save(port)
 	if result.Error != nil {
-		return nil, fmt.Errorf("failed to update location: %w", result.Error)
+		return fmt.Errorf("failed to update location: %w", result.Error)
 	}
-	return port, nil
+	fmt.Println("UpdateLocation end= ", port)
+	return nil
 }
 
-func (repo PortRepository) GetPortByKey(ctx context.Context, key string) (*Port, error) {
+func (repo PortRepository) GetPort(ctx context.Context, key string) (*Port, error) {
 	var port Port
 	result := repo.Db.First(&port, "key = ?", key)
 	if result.Error != nil {

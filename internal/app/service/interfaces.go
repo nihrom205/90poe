@@ -8,7 +8,7 @@ import (
 
 type IPortRepository interface {
 	CreatePort(ctx context.Context, port *repository.Port) (*repository.Port, error)
-	UpdateLocation(ctx context.Context, port *repository.Port) (*repository.Port, error)
-	GetPortByKey(ctx context.Context, key string) (*repository.Port, error)
+	UpdateLocation(ctx context.Context, port *repository.Port) error
+	GetPort(ctx context.Context, key string) (*repository.Port, error)
 	GetAllPorts(ctx context.Context) ([]repository.Port, error)
 }

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/nihrom205/90poe/internal/pkg/pg"
 	"log"
 	"net/http"
 	"os"
@@ -23,7 +24,6 @@ import (
 	"github.com/nihrom205/90poe/internal/app/repository"
 	"github.com/nihrom205/90poe/internal/app/service"
 	"github.com/nihrom205/90poe/internal/app/transport/httpserver"
-	"github.com/nihrom205/90poe/internal/pkg"
 )
 
 func main() {
@@ -37,14 +37,14 @@ func run() error {
 	logger := getLogger()
 	cfg := config.Read()
 
-	db, err := pkg.NewDb(cfg.DSN)
+	db, err := pg.NewDb(cfg.DSN)
 	if err != nil {
 		return fmt.Errorf("pg.Db failed: %w", err)
 	}
 
 	// Migration
 	if db != nil {
-		logger.Info().Msgf("Start Sqlite migrations")
+		logger.Info().Msg("Start Sqlite migrations")
 		if err = runSqliteMigrations(cfg.DSN, cfg.MigrationsPath); err != nil {
 			return fmt.Errorf("runSqliteMigrations failed: %w", err)
 		}
@@ -63,7 +63,7 @@ func run() error {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/ports", httpServer.LoadPorts).Methods(http.MethodPost)
-	router.HandleFunc("/port/{key}", httpServer.GetPortByKey).Methods(http.MethodGet)
+	router.HandleFunc("/port/{key}", httpServer.GetPort).Methods(http.MethodGet)
 
 	srv := &http.Server{
 		Addr:    cfg.HTTPAddr,
@@ -79,7 +79,7 @@ func run() error {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err = srv.Shutdown(ctx); err != nil {
-			logger.Error().Msgf("HTTP Server Shutdown Error: %v", err)
+			logger.Error().Err(err).Msg("HTTP Server Shutdown Error")
 		}
 		close(stopped)
 	}()
@@ -92,7 +92,7 @@ func run() error {
 
 	<-stopped
 
-	logger.Info().Msgf("Http server completed his work!")
+	logger.Info().Msg("Http server completed his work!")
 
 	return nil
 }

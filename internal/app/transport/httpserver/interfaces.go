@@ -8,6 +8,6 @@ import (
 )
 
 type IPortService interface {
-	ProcessingJson(ctx context.Context, data io.ReadCloser)
-	GetPortByKey(ctx context.Context, key string) (*domain.NewPortData, error)
+	UploadPorts(ctx context.Context, data io.ReadCloser)
+	GetPort(ctx context.Context, key string) (*domain.NewPortData, error)
 }

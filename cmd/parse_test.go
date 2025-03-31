@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/nihrom205/90poe/internal/pkg/pg"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/nihrom205/90poe/internal/app/service"
 	"github.com/nihrom205/90poe/internal/app/transport/httpserver"
-	"github.com/nihrom205/90poe/internal/pkg"
 	"github.com/stretchr/testify/require"
 
 	"github.com/glebarez/sqlite"
@@ -72,24 +73,24 @@ func initData(db *gorm.DB) {
 
 func initHttpServer(db *gorm.DB) *httpserver.HttpServer {
 	logger := getLogger()
-	portRepo := repository.NewPortRepository(&pkg.Db{DB: db})
+	portRepo := repository.NewPortRepository(&pg.Db{DB: db})
 	portService := service.NewPortService(portRepo, &logger)
 	return httpserver.NewHttpServer(portService)
 }
 
-func TestGetPortByKeySuccess(t *testing.T) {
+func TestGetPortSuccess(t *testing.T) {
 	db := initDb(t)
 	initData(db)
 	server := initHttpServer(db)
 	router := mux.NewRouter()
 
-	router.HandleFunc("/port/{key}", server.GetPortByKey).Methods(http.MethodGet)
+	router.HandleFunc("/port/{key}", server.GetPort).Methods(http.MethodGet)
 	ts := httptest.NewServer(router)
 	defer ts.Close()
 
 	// Отправляем GET-запрос
-	fmt.Println(ts.URL)
-	resp, err := http.Get(ts.URL + "/port/AEAUH")
+	var netClient = &http.Client{Timeout: time.Second * 10}
+	resp, err := netClient.Get(ts.URL + "/port/AEAUH")
 
 	assert.NoError(t, err)
 	defer resp.Body.Close()
@@ -98,7 +99,7 @@ func TestGetPortByKeySuccess(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 	//Проверяем содержимое ответа
-	var port *repository.Port
+	var port repository.Port
 	err = json.NewDecoder(resp.Body).Decode(&port)
 	assert.NoError(t, err)
 	assert.Equal(t, port.ID, uint(0))
@@ -106,18 +107,19 @@ func TestGetPortByKeySuccess(t *testing.T) {
 	assert.Equal(t, port.Name, "Abu Dhabi")
 }
 
-func TestGetPortByKeyNotFound(t *testing.T) {
+func TestGetPortNotFound(t *testing.T) {
 	db := initDb(t)
 	initData(db)
 	server := initHttpServer(db)
 	router := mux.NewRouter()
 
-	router.HandleFunc("/port/{key}", server.GetPortByKey).Methods(http.MethodGet)
+	router.HandleFunc("/port/{key}", server.GetPort).Methods(http.MethodGet)
 	ts := httptest.NewServer(router)
 	defer ts.Close()
 
 	// Отправляем GET-запрос
-	resp, err := http.Get(ts.URL + "/port/fail")
+	var netClient = &http.Client{Timeout: time.Second * 10}
+	resp, err := netClient.Get(ts.URL + "/port/fail")
 
 	assert.NoError(t, err)
 	defer resp.Body.Close()

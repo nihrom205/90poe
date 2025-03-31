@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/nihrom205/90poe/internal/pkg/pg"
 	"io"
 	"log"
 	"os"
@@ -15,7 +16,6 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/glebarez/sqlite"
 	"github.com/nihrom205/90poe/internal/app/repository"
-	"github.com/nihrom205/90poe/internal/pkg"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 )
@@ -39,7 +39,7 @@ func initTest() (*gorm.DB, sqlmock.Sqlmock, error) {
 	return gormDb, mock, nil
 }
 
-func TestPortServiceGetPortByKeySuccess(t *testing.T) {
+func TestPortServiceGetPortSuccess(t *testing.T) {
 	logger := getLogger()
 	gormDb, mock, err := initTest()
 	if err != nil {
@@ -55,12 +55,12 @@ func TestPortServiceGetPortByKeySuccess(t *testing.T) {
 	mock.ExpectQuery("SELECT").WillReturnRows(rows)
 
 	// Вызываем тестируемую функцию
-	portRepo := repository.NewPortRepository(&pkg.Db{
+	portRepo := repository.NewPortRepository(&pg.Db{
 		DB: gormDb,
 	})
 	ctx := context.Background()
 	service := NewPortService(portRepo, &logger)
-	port, err := service.GetPortByKey(ctx, "AEAUH")
+	port, err := service.GetPort(ctx, "AEAUH")
 
 	assert.NoError(t, err)
 	assert.NotNil(t, port)
@@ -73,7 +73,7 @@ func TestPortServiceGetPortByKeySuccess(t *testing.T) {
 	}
 }
 
-func TestPortServiceGetPortByKeyNotFound(t *testing.T) {
+func TestPortServiceGetPortNotFound(t *testing.T) {
 	logger := getLogger()
 	gormDb, mock, err := initTest()
 	if err != nil {
@@ -88,12 +88,12 @@ func TestPortServiceGetPortByKeyNotFound(t *testing.T) {
 	mock.ExpectQuery("SELECT").WillReturnRows(rows)
 
 	// Вызываем тестируемую функцию
-	portRepo := repository.NewPortRepository(&pkg.Db{
+	portRepo := repository.NewPortRepository(&pg.Db{
 		DB: gormDb,
 	})
 	ctx := context.Background()
 	service := NewPortService(portRepo, &logger)
-	port, err := service.GetPortByKey(ctx, "FakeKey")
+	port, err := service.GetPort(ctx, "FakeKey")
 
 	assert.Error(t, err)
 	assert.Nil(t, port)
@@ -109,10 +109,10 @@ func TestPortServiceParsing(t *testing.T) {
 	// Создаём mock-репозиторий
 	mockRepo := new(MockPortRepository)
 
-	// Настраиваем ожидание для GetPortByKey
+	// Настраиваем ожидание для GetPort
 	port := getPort()
 
-	mockRepo.On("GetPortByKey", port.Key).
+	mockRepo.On("GetPort", port.Key).
 		Return((*repository.Port)(nil), gorm.ErrRecordNotFound)
 
 	// Настраиваем ожидание для CreatePort
@@ -123,10 +123,10 @@ func TestPortServiceParsing(t *testing.T) {
 	service := NewPortService(mockRepo, &logger)
 
 	// Вызываем метод SavePort
-	service.ProcessingJson(context.Background(), io.NopCloser(strings.NewReader(getJsonData())))
+	service.UploadPorts(context.Background(), io.NopCloser(strings.NewReader(getJsonData())))
 
 	// Проверяем, что методы были вызваны с ожидаемыми аргументами
-	mockRepo.AssertCalled(t, "GetPortByKey", port.Key)
+	mockRepo.AssertCalled(t, "GetPort", port.Key)
 	//mockRepo.AssertCalled(t, "CreatePort", &port)
 
 	// Проверяем, что все ожидания выполнены
