@@ -14,8 +14,8 @@ type PortRepository struct {
 	Db *pg.Db
 }
 
-func NewPortRepository(db *pg.Db) *PortRepository {
-	return &PortRepository{Db: db}
+func NewPortRepository(db *pg.Db) PortRepository {
+	return PortRepository{Db: db}
 }
 
 func (repo PortRepository) CreatePort(ctx context.Context, port *Port) (*Port, error) {
