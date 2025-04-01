@@ -3,7 +3,6 @@ package pg
 import (
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/glebarez/sqlite"
@@ -21,7 +20,7 @@ func NewDb(dsn string) (*Db, error) {
 
 	gormDb, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("Error connecting to a database: %v", err)
+		return nil, fmt.Errorf("error connecting to a database: %w", err)
 	}
 
 	sqlDb, err := gormDb.DB()

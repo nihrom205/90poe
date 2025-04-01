@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/nihrom205/90poe/internal/pkg/pg"
@@ -45,7 +44,7 @@ func run() error {
 	// Migration
 	if db != nil {
 		logger.Info().Msg("Start Sqlite migrations")
-		if err = runSqliteMigrations(cfg.DSN, cfg.MigrationsPath); err != nil {
+		if err = runSqliteMigrations(db, cfg.MigrationsPath); err != nil {
 			return fmt.Errorf("runSqliteMigrations failed: %w", err)
 		}
 	}
@@ -97,15 +96,12 @@ func run() error {
 	return nil
 }
 
-func runSqliteMigrations(dsn, path string) error {
+func runSqliteMigrations(db *pg.Db, path string) error {
 	if path == "" {
 		return errors.New("no migrations path provided")
 	}
-	if dsn == "" {
-		return errors.New("no DSN provided")
-	}
 
-	sqlDB, err := sql.Open("sqlite", dsn)
+	sqlDB, err := db.DB.DB()
 	if err != nil {
 		return fmt.Errorf("failed connection to a database: %w", err)
 	}
