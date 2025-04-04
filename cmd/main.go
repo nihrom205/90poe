@@ -48,6 +48,11 @@ func run() error {
 			return fmt.Errorf("runSqliteMigrations failed: %w", err)
 		}
 	}
+	sqlDb, err := db.DB.DB()
+	if err != nil {
+		return fmt.Errorf("failed connection to a database: %w", err)
+	}
+	defer sqlDb.Close()
 
 	// Create Repositories
 	portRepo := repository.NewPortRepository(db)
@@ -105,7 +110,6 @@ func runSqliteMigrations(db *pg.Db, path string) error {
 	if err != nil {
 		return fmt.Errorf("failed connection to a database: %w", err)
 	}
-	defer sqlDB.Close()
 
 	// Инициализация драйвера для SQLite
 	driver, err := sqlite3.WithInstance(sqlDB, &sqlite3.Config{})
