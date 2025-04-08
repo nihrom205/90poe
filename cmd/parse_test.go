@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/nihrom205/90poe/internal/pkg/pg"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -30,7 +31,12 @@ func initDb(t *testing.T) *gorm.DB {
 
 	sqlDB, err := sql.Open("sqlite", dsn)
 	require.NoError(t, err, "Failed to open SQLite DB")
-	defer sqlDB.Close()
+	defer func(sqlDB *sql.DB) {
+		err := sqlDB.Close()
+		if err != nil {
+			t.Errorf("Failed to close DB: %v", err)
+		}
+	}(sqlDB)
 
 	// Инициализация драйвера для SQLite
 	driver, err := sqlite3.WithInstance(sqlDB, &sqlite3.Config{})
@@ -93,7 +99,12 @@ func TestGetPortSuccess(t *testing.T) {
 	resp, err := netClient.Get(ts.URL + "/port/AEAUH")
 
 	assert.NoError(t, err)
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			t.Errorf("Failed to close DB: %v", err)
+		}
+	}(resp.Body)
 
 	// Проверяем статус-код
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -122,7 +133,12 @@ func TestGetPortNotFound(t *testing.T) {
 	resp, err := netClient.Get(ts.URL + "/port/fail")
 
 	assert.NoError(t, err)
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			t.Errorf("Failed to close DB: %v", err)
+		}
+	}(resp.Body)
 
 	// Проверяем статус-код
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)

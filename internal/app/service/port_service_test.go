@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"github.com/nihrom205/90poe/internal/pkg/pg"
@@ -47,7 +48,12 @@ func TestPortServiceGetPortSuccess(t *testing.T) {
 		return
 	}
 	db, _ := gormDb.DB()
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+			t.Errorf("Failed to close DB: %v", err)
+		}
+	}(db)
 
 	// Ожидаемый запрос и результат
 	rows := mock.NewRows([]string{"key", "name"}).
@@ -81,7 +87,12 @@ func TestPortServiceGetPortNotFound(t *testing.T) {
 		return
 	}
 	db, _ := gormDb.DB()
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+			t.Errorf("Failed to close DB: %v", err)
+		}
+	}(db)
 
 	// Ожидаемый запрос и результат
 	rows := mock.NewRows([]string{"key", "name"})

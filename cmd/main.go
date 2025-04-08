@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/nihrom205/90poe/internal/pkg/pg"
@@ -52,7 +53,12 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("failed connection to a database: %w", err)
 	}
-	defer sqlDb.Close()
+	defer func(sqlDb *sql.DB) {
+		err := sqlDb.Close()
+		if err != nil {
+			logger.Error().Err(err).Msg("failed to close database connection")
+		}
+	}(sqlDb)
 
 	// Create Repositories
 	portRepo := repository.NewPortRepository(db)
